@@ -1,0 +1,43 @@
+resources:
+  repositories:
+    - repository: self
+      trigger: none
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  resourceGroup: 'rg-lab-aci'
+  location: 'canadacentral'
+  containerGroupName: 'lab-aci-private-system1'
+  containerName: 'lab-private-container1'
+  userAssignedIdentityName: 'userLabACRId'
+  azureserviceconnection: 'ARM-connection-Cyreal06'
+  acrName: 'crm2ayxlnqd3fvi'
+  acrLoginServer: '$(acrName).azurecr.io'
+  privateImage: '$(acrLoginServer)/eshopwebmvc:latest'
+
+stages:
+- stage: DeployInitialAci
+  displayName: 'Step 1: Deploy ACI with public image'
+  jobs:
+  - job: DeployInitial
+    displayName: 'Deploy ACI'
+    steps:
+    - task: AzureCLI@2
+      name: DeployAci
+      displayName: 'Deploy ACI and get principal ID'
+      inputs:
+        azureSubscription: '$(azureserviceconnection)'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          az deployment group create \
+          --resource-group "$(resourceGroup)" \
+          --template-file infra/aci-sm-main.bicep \
+          --parameters \
+            containerGroupName="$(containerGroupName)" \
+            containerName="$(containerName)" \
+            acrName="$(acrName)" \
+            userAssignedIdentityName="$(userAssignedIdentityName)" \
+            privateImage="$(privateImage)"
